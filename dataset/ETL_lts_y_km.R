@@ -1,5 +1,6 @@
 library(data.table)
 library(lubridate)
+library(readxl)
 
 gc()
 rm(list = ls())
@@ -153,8 +154,75 @@ fwrite(consumo_dia, "C:/Users/rodri/OneDrive/Documentos/Maestría Ciencia de Dat
 fwrite(consumo_semana, "C:/Users/rodri/OneDrive/Documentos/Maestría Ciencia de Datos/Series Temporales/CONSUMO_semana.csv")
 fwrite(consumo_mes, "C:/Users/rodri/OneDrive/Documentos/Maestría Ciencia de Datos/Series Temporales/CONSUMO_mes.csv")
 
+# PASAJEROS
+
+pasajeros_1 <- read_xlsx("C:/Users/rodri/OneDrive/Documentos/Maestría Ciencia de Datos/Series Temporales/Pasajeros_2019_2020_2021.xlsx")
+pasajeros_2 <- read_xlsx("C:/Users/rodri/OneDrive/Documentos/Maestría Ciencia de Datos/Series Temporales/Pasajeros_2022_2023.xlsx")
+
+setDT(pasajeros_1)
+setDT(pasajeros_2)
+
+pasajeros <- rbindlist(list(pasajeros_1, pasajeros_2))
+
+pasajeros <- pasajeros[!is.na(FechaRecaudacion),]
+pasajeros <- pasajeros[!is.na(des_lin),]
+pasajeros <- pasajeros[,-"ID_Clase"]
+pasajeros <- pasajeros[FechaRecaudacion >= "2019-01-01"]
+
+pasajeros[, Mes := month(FechaRecaudacion)]
+pasajeros[, Semana := floor_date(FechaRecaudacion, unit = "week")]
+pasajeros[, Year := year(FechaRecaudacion)]
+
+pasajeros_dia <- pasajeros[, .(Cantidad_Pasajeros = sum(Pasajeros, na.rm = TRUE)), by = .(FechaRecaudacion, des_lin)]
+pasajeros_semana <- pasajeros[, .(Cantidad_Pasajeros = sum(Pasajeros, na.rm = TRUE)), by = .(Semana, des_lin)]
+pasajeros_mes <- pasajeros[, .(Cantidad_Pasajeros = sum(Pasajeros, na.rm = TRUE)), by = .(Mes, Year, des_lin)]
 
 
+fwrite(pasajeros_dia, "C:/Users/rodri/OneDrive/Documentos/Maestría Ciencia de Datos/Series Temporales/PASAJEROS_dia.csv")
+fwrite(pasajeros_semana, "C:/Users/rodri/OneDrive/Documentos/Maestría Ciencia de Datos/Series Temporales/PASAJEROS_semana.csv")
+fwrite(pasajeros_mes, "C:/Users/rodri/OneDrive/Documentos/Maestría Ciencia de Datos/Series Temporales/PASAJEROS_mes.csv")
+
+# CUBIERTAS
+
+cubiertas_200011 <- read_xlsx("C:/Users/rodri/OneDrive/Documentos/Maestría Ciencia de Datos/Series Temporales/Cubiertas 200011.xlsx")
+cubiertas_200012 <- read_xlsx("C:/Users/rodri/OneDrive/Documentos/Maestría Ciencia de Datos/Series Temporales/Cubiertas 200012.xlsx")
+
+setDT(cubiertas_200011)
+setDT(cubiertas_200012)
+
+cubiertas_200011 <- cubiertas_200011[,c("Fecha física", "Emisión", "Cantidad", "N° dispositivo")]
+cubiertas_200012 <- cubiertas_200012[,c("Fecha física", "Emisión", "Cantidad", "N° dispositivo")]
+
+cubiertas <- rbindlist(list(cubiertas_200011, cubiertas_200012))
+
+setnames(cubiertas, c("N° dispositivo", "Emisión", "Fecha física"), 
+         c("Num_dispositivo", "Emision", "Fecha"))
+
+#a <- cubiertas[,.(cant = .N), by = .(Num_dispositivo)]
+
+#b <- a <- cubiertas_200011[,.(cant = .N), by = .(Emision, Recepcion)]
+
+cubiertas <- cubiertas[Emision == "Vendido",]
+cubiertas <- cubiertas[Fecha >= "2019-01-01",]
+
+cubiertas <- unique(cubiertas)
+
+
+cubiertas[, Mes := month(Fecha)]
+cubiertas[, Semana := floor_date(Fecha, unit = "week")]
+cubiertas[, Year := year(Fecha)]
+cubiertas[, Mes_Year := paste0(Year, "-", Mes, "-1")]
+cubiertas[, Mes_Year := as.Date(Mes_Year)]
+
+cubiertas[, Cantidad := abs(Cantidad)]
+
+cubiertas_dia <- cubiertas[, .(Cantidad = sum(Cantidad, na.rm = TRUE)), by = .(Fecha)]
+cubiertas_semana <- cubiertas[, .(Cantidad = sum(Cantidad, na.rm = TRUE)), by = .(Semana)]
+cubiertas_mes <- cubiertas[, .(Cantidad = sum(Cantidad, na.rm = TRUE)), by = .(Mes_Year)]
+
+fwrite(cubiertas_dia, "C:/Users/rodri/OneDrive/Documentos/Maestría Ciencia de Datos/Series Temporales/CUBIERTAS_dia.csv")
+fwrite(cubiertas_semana, "C:/Users/rodri/OneDrive/Documentos/Maestría Ciencia de Datos/Series Temporales/CUBIERTAS_semana.csv")
+fwrite(cubiertas_mes, "C:/Users/rodri/OneDrive/Documentos/Maestría Ciencia de Datos/Series Temporales/CUBIERTAS_mes.csv")
 
 
 
